@@ -1,0 +1,7 @@
+{
+  "name": "mobil için mesai",
+  "description": "A location-based platform connecting workers with short-term, daily jobs like waiting, cleaning, and security. Employers can find verified workers quickly, and workers can find jobs nearby.",
+  "requestFramePermissions": [
+    "geolocation"
+  ]
+}

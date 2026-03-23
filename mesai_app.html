@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>Mesai - Günlük İş Platformu</title>
+    
+    <!-- PWA Settings embedded -->
+    <meta name="theme-color" content="#39FF14" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Mesai" />
+    <link rel="icon" type="image/png" href="icon.png" />
+    <link rel="apple-touch-icon" href="icon.png" />
+    
+    <!-- Manifest embedded as Data URI for single file support -->
+    <link rel="manifest" href="data:application/json;base64,ewogICJuYW1lIjogIk1lc2FpIiwKICAic2hvcnRfbmFtZSI6ICJNZXNhaSIsCiAgInN0YXJ0X3VybCI6ICIvIiwKICAiZGlzcGxheSI6ICJzdGFuZGFsb25lIiwKICAiYmFja2dyb3VuZF9jb2xvciI6ICIjZmZmZmZmIiwKICAidGhlbWVfY29xvciI6ICIjMzlGRjE0IiwKICAiZGVzY3JpcHRpb24iOiAiR8O8bmzDvGsgacWfbGVyaSB2ZSBjYWzEscWfYW5sYXLEsSBidWx1bi4iLAogICJpY29ucyI6IFtdCn0=" />
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- React & ReactDOM -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    
+    <!-- Recharts (for Charts) -->
+    <script src="https://unpkg.com/recharts/umd/Recharts.js"></script>
+    
+    <!-- Babel (to compile JSX/TS in browser) -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&family=Poppins:wght@700&family=Mulish:wght@300;600&display=swap" rel="stylesheet">
+
+    <style>
+      body {
+        font-family: 'Inter', sans-serif;
+        overscroll-behavior-y: none;
+        background-color: #f3f4f6;
+        margin: 0;
+        padding: 0;
+        -webkit-tap-highlight-color: transparent;
+      }
+      .font-poppins { font-family: 'Poppins', sans-serif; }
+      .font-mulish { font-family: 'Mulish', sans-serif; }
+      .no-scrollbar::-webkit-scrollbar { display: none; }
+      .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+      .scroll-snap-x-mandatory { scroll-snap-type: x mandatory; }
+      .scroll-snap-center { scroll-snap-align: center; }
+      @keyframes splash-fade-in { from { opacity: 0; } to { opacity: 1; } }
+      .splash-fade-in { animation: splash-fade-in 2s forwards; }
+      
+      :root {
+        --mesai-green: #39FF14;
+        --mesai-green-light: #B0FFB0;
+        --border: #e2e8f0;
+        --foreground: #1e293b;
+        --muted-foreground: #64748b;
+        --input-background: #f8fafc;
+        --employer-bg: #F7F8FC; 
+        --employer-card: #FFFFFF;
+        --employer-primary: #39FF14;
+        --employer-text-primary: #1A202C;
+        --employer-text-secondary: #718096;
+        --employer-border: #E2E8F0;
+        --employer-green-soft: #E6FCEC;
+        --employer-blue-soft: #EBF4FF;
+        --employer-purple-soft: #F3E8FF;
+      }
+      .employer-mode {
+        background-color: var(--employer-bg);
+        color: var(--employer-text-primary);
+      }
+      input:focus, textarea:focus { outline: none; }
+      input[type=number]::-webkit-inner-spin-button, 
+      input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+      .range-slider {
+        -webkit-appearance: none; appearance: none; height: 8px; background: #e5e7eb; border-radius: 9999px; outline: none; opacity: 0.9; transition: opacity .2s;
+      }
+      .range-slider:hover { opacity: 1; }
+      .range-slider::-webkit-slider-thumb {
+        -webkit-appearance: none; appearance: none; width: 20px; height: 20px; background: var(--mesai-green); cursor: pointer; border-radius: 50%; border: 3px solid white; box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+      }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel" data-presets="react,typescript">
+        const { useState, useEffect, useCallback, useMemo, useRef } = React;
+        const { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } = Recharts;
+
+        // ==========================================
+        // 1. DATA & UTILS (mockData.ts)
+        // ==========================================
+        
+        const getEmployerAvatarUrl = (employerName) => {
+          const seed = employerName.split(' ').map(s => s.charCodeAt(0)).reduce((acc, val) => acc + val, 0);
+          return `https://picsum.photos/seed/${seed}/40/40`;
+        };
+
+        const mockJobs = [
+          {
+            id: '1', title: 'Barista (Sabah Vardiyası)', employer: 'The Coffee Spot', employerRating: 4.8, distance: 1.2, payRate: '600₺', payType: 'daily', shiftTime: '07:00 - 15:00', category: 'Garson', description: 'Yoğun bir kafe için deneyimli barista aranıyor. Espresso makinesi kullanımı bilinmeli.', date: '28 Temmuz 2024', location: { address: 'Bağdat Cad. No:12, İstanbul', lat: 40.96, lng: 29.07 }, isUrgent: false, employerAvatarUrl: 'https://picsum.photos/seed/TheCoffeeSpot/40/40'
+          },
+          {
+            id: '2', title: 'Etkinlik Güvenliği', employer: 'SecureEvents Inc.', employerRating: 4.5, distance: 3.5, payRate: '1200₺', payType: 'daily', shiftTime: '18:00 - 02:00', category: 'Güvenlik', description: 'Kurumsal etkinlik için güvenlik personeli. Özel güvenlik kimlik kartı zorunludur.', date: '29 Temmuz 2024', hourlyEquivalent: '150₺', location: { address: 'Maslak Mah. Büyükdere Cad.', lat: 41.11, lng: 29.02 }, isUrgent: true, employerAvatarUrl: 'https://picsum.photos/seed/SecureEventsInc/40/40'
+          },
+          {
+            id: '3', title: 'Otel Oda Temizliği', employer: 'Grand Vista Hotel', employerRating: 4.6, distance: 2.1, payRate: '800₺', payType: 'daily', shiftTime: '09:00 - 17:00', category: 'Temizlik', description: 'Misafir odalarının temizliği ve düzeni. Otel deneyimi tercih sebebidir.', date: '28 Temmuz 2024', location: { address: 'Beşiktaş Merkez', lat: 41.04, lng: 29.00 }, isUrgent: false, employerAvatarUrl: 'https://picsum.photos/seed/GrandVistaHotel/40/40'
+          },
+          {
+            id: '4', title: 'Düğün Fotoğrafçısı Asistanı', employer: 'Everlast Photos', employerRating: 5.0, distance: 8.2, payRate: '1500₺', payType: 'daily', shiftTime: '12:00 - 22:00', category: 'Fotoğrafçı', description: 'Düğün çekimlerinde ana fotoğrafçıya asistanlık yapacak, ekipman taşıyabilecek yardımcı.', date: '3 Ağustos 2024', hourlyEquivalent: '150₺', location: { address: 'Kemerburgaz Kent Ormanı', lat: 41.15, lng: 28.90 }, isUrgent: false, employerAvatarUrl: 'https://picsum.photos/seed/EverlastPhotos/40/40'
+          },
+          {
+            id: '5', title: 'Yat Garsonu', employer: 'Ocean Breeze Charters', employerRating: 4.9, distance: 5.4, payRate: '2000₺', payType: 'daily', shiftTime: '08:00 - 18:00', category: 'Yat Ekibi', description: 'Özel yat turunda servis yapacak, diksiyonu düzgün ve deniz tutması olmayan personel.', date: '1 Ağustos 2024', hourlyEquivalent: '200₺', location: { address: 'Bebek Marina', lat: 41.07, lng: 29.04 }, isUrgent: true, employerAvatarUrl: 'https://picsum.photos/seed/OceanBreezeCharters/40/40'
+          },
+          {
+            id: '6', title: 'Plaj Kulübü Garsonu', employer: 'Sunset Beach Club', employerRating: 4.7, distance: 2.5, payRate: '1000₺', payType: 'daily', shiftTime: '10:00 - 18:00', category: 'Garson', description: 'Plaj kulübümüz için enerjik, hızlı servis yapabilen garsonlar arıyoruz.', date: '10 Ağustos 2024', hourlyEquivalent: '125₺', location: { address: 'Kilyos Sahil', lat: 41.25, lng: 29.03 }, isUrgent: false, employerAvatarUrl: 'https://picsum.photos/seed/SunsetBeachClub/40/40', requirements: ['Hijyen Belgesi', 'İngilizce (Orta)'],
+          }
+        ];
+
+        const mockEmployerUser = {
+          id: 'e1', name: 'Sunset Beach Club', phone: '+90 212-987-6543', avatarUrl: 'https://picsum.photos/seed/SunsetBeachClub/200/200', isVerified: true, email: 'contact@sunsetbeach.com', dob: '2010-05-20', gender: 'company', bio: 'Sahil kenarında, kaliteli hizmet ve eşsiz bir atmosfer sunan birinci sınıf bir mekanız.', address: 'Kilyos, İstanbul', industry: 'Hizmet', website: 'www.sunsetbeach.com'
+        };
+
+        const mockUser = {
+          id: 'u1', name: 'Uğur Yılmaz', phone: '+90 555-123-4567', avatarUrl: 'https://picsum.photos/id/237/200/200', isVerified: true, email: 'ugur@example.com', dob: '1990-01-15', gender: 'male', trustScore: 80, bio: 'Deneyimli ve dinamik bir garsonum.', skills: ['Garsonluk', 'Hızlı Servis', 'Takım Çalışması'], certificates: [{ id: '1', name: 'Hijyen Belgesi', status: 'verified' }], badges: [
+            { id: 'b1', name: 'Haftanın Yıldızı', icon: 'Star', color: 'yellow' },
+            { id: 'b2', name: 'Ultra Güvenilir', icon: 'ShieldCheck', color: 'blue' }
+          ],
+          reviews: [{id:'r1', reviewerName:'The Coffee Spot', rating:5, comment:'Harika iş çıkardı!', date:'2 ay önce', reviewerAvatarUrl: getEmployerAvatarUrl('The Coffee Spot')}]
+        };
+
+        const mockPostedJobs = [
+            { ...mockJobs[5], applicantCount: 4, status: 'active' },
+            { id: 'pj2', title: 'Vale Görevlisi', employer: 'Sunset Beach Club', employerRating: 4.7, distance: 0, payRate: '800₺', payType: 'daily', shiftTime: '18:00 - 02:00', category: 'Vale', description: 'Hafta sonu yoğunluğu için vale.', date: '12 Ağustos 2024', location: { address: 'Kilyos', lat: 41.25, lng: 29.03 }, applicantCount: 2, status: 'active' },
+            { id: 'pj3', title: 'Temizlik Personeli', employer: 'Sunset Beach Club', status: 'completed', applicantCount: 1, date: '1 Temmuz 2024', payRate: '750₺', payType: 'daily', category: 'Temizlik' }
+        ];
+
+        const mockApplicants = {
+            '6': [mockUser, {id:'u2', name:'Ayşe Kaya', trustScore: 95, avatarUrl: 'https://picsum.photos/id/101/200/200', skills: ['Garson', 'Barista']}],
+            'pj2': [{id:'u3', name:'Mehmet Demir', trustScore: 88, avatarUrl: 'https://picsum.photos/id/102/200/200', skills: ['Şoförlük', 'B Sınıfı Ehliyet']}]
+        };
+
+        const mockTransactions = [
+          { id: 't1', type: 'payout', title: 'Haftalık Ödeme', date: '22 Temmuz', amount: -850.50 },
+          { id: 't2', type: 'earning', title: 'Barista', date: '21 Temmuz', amount: 600.00 }
+        ];
+
+        const mockEmployerTransactions = [
+           { id: 'et1', type: 'deposit', title: 'Kredi Kartı', date: '1 Ağustos', amount: 5000.00 }
+        ];
+
+        const mockConversations = [
+            { id: 'c1', jobId: '6', employer: 'Sunset Beach Club', employerAvatarUrl: mockEmployerUser.avatarUrl, jobTitle: 'Plaj Kulübü Garsonu', lastMessage: 'Yarın bekliyoruz.', lastMessageTime: '10:00', unreadCount: 1 }
+        ];
+        
+        const mockEmployerConversations = {
+            '6': [{ id: 'ec1', applicantName: 'Uğur Yılmaz', applicantAvatarUrl: mockUser.avatarUrl, lastMessage: 'Yarın orada olacağım.', lastMessageTime: '09:50', unreadCount: 0 }]
+        };
+
+        const categories = ['All', 'Garson', 'Güvenlik', 'Temizlik', 'Fotoğrafçı', 'Yat Ekibi', 'Vale'];
+        const campaigns = [
+          { id: 1, title: 'Garsonlar için Bonus!', description: '%25 ekstra kazan.', bgColor: 'from-green-400 to-teal-400' },
+          { id: 2, title: 'Arkadaşını Getir', description: '200₺ kazan.', bgColor: 'from-yellow-400 to-orange-500' }
+        ];
+
+        const getJobImageForDetails = (category) => {
+            const map = {
+                'Garson': 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?q=80&w=600&h=400&fit=crop',
+                'Güvenlik': 'https://images.unsplash.com/photo-1570497530283-a4a39f6745ab?q=80&w=600&h=400&fit=crop',
+                'Temizlik': 'https://images.unsplash.com/photo-1581578731548-c64695cc6952?q=80&w=600&h=400&fit=crop',
+                'Fotoğrafçı': 'https://images.unsplash.com/photo-1516035069371-29a1b244cc32?q=80&w=600&h=400&fit=crop',
+                'Yat Ekibi': 'https://images.unsplash.com/photo-1574993111029-734789d09085?q=80&w=600&h=400&fit=crop',
+                'Vale': 'https://images.unsplash.com/photo-1533106418989-88406e76825a?q=80&w=600&h=400&fit=crop'
+            };
+            return map[category] || 'https://images.unsplash.com/photo-1521790797524-b249679b6720?q=80&w=600&h=400&fit=crop';
+        };
+
+        const getJobImageByCategory = (category) => {
+             return getJobImageForDetails(category).replace('w=600', 'w=200');
+        };
+
+        // ==========================================
+        // 2. ICONS
+        // ==========================================
+        const IconBase = (props) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props} />;
+        
+        const HomeIcon = (p) => <IconBase {...p}><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></IconBase>;
+        const MessageSquareIcon = (p) => <IconBase {...p}><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></IconBase>;
+        const BriefcaseIcon = (p) => <IconBase {...p}><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></IconBase>;
+        const UserIcon = (p) => <IconBase {...p}><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></IconBase>;
+        const MapPinIcon = (p) => <IconBase {...p}><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></IconBase>;
+        const ClockIcon = (p) => <IconBase {...p}><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></IconBase>;
+        const CalendarIcon = (p) => <IconBase {...p}><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></IconBase>;
+        const StarIcon = (p) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>;
+        const ChevronLeftIcon = (p) => <IconBase {...p}><polyline points="15 18 9 12 15 6"/></IconBase>;
+        const ChevronRightIcon = (p) => <IconBase {...p}><polyline points="9 18 15 12 9 6"/></IconBase>;
+        const FilterIcon = (p) => <IconBase {...p}><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></IconBase>;
+        const MapIcon = (p) => <IconBase {...p}><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></IconBase>;
+        const NotificationIcon = (p) => <IconBase {...p}><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></IconBase>;
+        const CheckCircleIcon = (p) => <IconBase {...p}><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></IconBase>;
+        const XIcon = (p) => <IconBase {...p}><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></IconBase>;
+        const PlusCircleIcon = (p) => <IconBase {...p}><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></IconBase>;
+        const MinusCircleIcon = (p) => <IconBase {...p}><circle cx="12" cy="12" r="10"/><line x1="8" y1="12" x2="16" y2="12"/></IconBase>;
+        const ArrowUpCircleIcon = (p) => <IconBase {...p}><circle cx="12" cy="12" r="10"/><polyline points="16 12 12 8 8 12"/><line x1="12" y1="16" x2="12" y2="8"/></IconBase>;
+        const ArrowDownCircleIcon = (p) => <IconBase {...p}><circle cx="12" cy="12" r="10"/><polyline points="8 12 12 16 16 12"/><line x1="12" y1="8" x2="12" y2="16"/></IconBase>;
+        const CreditCardIcon = (p) => <IconBase {...p}><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></IconBase>;
+        const DollarSignIcon = (p) => <IconBase {...p}><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 0 0 1 0 7H6"/></IconBase>;
+        const UsersIcon = (p) => <IconBase {...p}><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></IconBase>;
+        const TagIcon = (p) => <IconBase {...p}><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line></IconBase>;
+        const FileTextIcon = (p) => <IconBase {...p}><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><line x1="10" y1="9" x2="10" y2="15"/><line x1="14" y1="9" x2="14" y2="15"/><line x1="8" y1="13" x2="16" y2="13"/></IconBase>;
+        const UploadCloudIcon = (p) => <IconBase {...p}><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/><polyline points="16 16 12 12 8 16"/></IconBase>;
+        const CrosshairIcon = (p) => <IconBase {...p}><circle cx="12" cy="12" r="10"/><line x1="22" y1="12" x2="18" y2="12"/><line x1="6" y1="12" x2="2" y2="12"/><line x1="12" y1="6" x2="12" y2="2"/><line x1="12" y1="22" x2="12" y2="18"/></IconBase>;
+        const ShieldIcon = (p) => <IconBase {...p}><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></IconBase>;
+        const QrCodeIcon = (p) => <IconBase {...p}><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="12" y1="12" x2="12.01" y2="12"></line><line x1="16" y1="16" x2="16.01" y2="16"></line><line x1="8" y1="8" x2="8.01" y2="8"></line><line x1="8" y1="16" x2="8.01" y2="16"></line><line x1="16" y1="8" x2="16.01" y2="8"></line></IconBase>;
+        const RefreshCwIcon = (p) => <IconBase {...p}><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M3 21v-5h5"/></IconBase>;
+        const CogIcon = (p) => <IconBase {...p}><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.78 1.22a2 2 0 0 0 .73 2.73l.04.02a2 2 0 0 1 .97 2.02v.07a2 2 0 0 1-.97 2.02l-.04.02a2 2 0 0 0 .73-2.73l-.78-1.22a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></IconBase>;
+        const AlertCircleIcon = (p) => <IconBase {...p}><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></IconBase>;
+        const WalletIcon = (p) => <IconBase {...p}><path d="M20 12V8H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v4"/><path d="M4 6v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V12"/><path d="M18 12a2 2 0 0 0-2 2h-2a2 2 0 0 0 0 4h4V12h-2Z"/></IconBase>;
+        const SettingsIcon = (p) => <IconBase {...p}><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></IconBase>;
+        const GlobeIcon = (p) => <IconBase {...p}><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></IconBase>;
+        const ShieldCheckIcon = (p) => <IconBase {...p}><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></IconBase>;
+        const ZapIcon = (p) => <IconBase {...p}><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></IconBase>;
+        const CrownIcon = (p) => <IconBase {...p}><path d="M2 4l3 12h14l3-12-6 7-4-7-4 7-6-7z"/><path d="M5 22h14"/></IconBase>;
+        const AwardIcon = (p) => <IconBase {...p}><circle cx="12" cy="8" r="7"/><polyline points="8.21 13.89 7 23 12 17 17 23 15.79 13.88"/></IconBase>;
+        const BellIcon = (p) => <IconBase {...p}><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="

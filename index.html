@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>Mesai - Daily Job Finder</title>
+    
+    <!-- PWA / Mobile App Setup -->
+    <link rel="manifest" href="/manifest.json" />
+    <meta name="theme-color" content="#39FF14" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    
+    <!-- iOS Specific Settings -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Mesai" />
+    
+    <!-- iOS Icons (Placeholder links - in production replace with real assets) -->
+    <link rel="apple-touch-icon" href="https://via.placeholder.com/192x192/39FF14/000000?text=Mesai" />
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@700&family=Mulish:wght@300;600&display=swap" rel="stylesheet">
+    <style>
+      body {
+        font-family: 'Inter', sans-serif;
+        /* Prevent bounce scroll on iOS */
+        overscroll-behavior-y: none;
+        background-color: #f3f4f6;
+      }
+      .font-poppins {
+        font-family: 'Poppins', sans-serif;
+      }
+      .font-mulish {
+        font-family: 'Mulish', sans-serif;
+      }
+      /* Hide scrollbar for Chrome, Safari and Opera */
+      .no-scrollbar::-webkit-scrollbar {
+          display: none;
+      }
+      /* Hide scrollbar for IE, Edge and Firefox */
+      .no-scrollbar {
+          -ms-overflow-style: none;  /* IE and Edge */
+          scrollbar-width: none;  /* Firefox */
+      }
+      /* Custom styles for onboarding */
+      .scroll-snap-x-mandatory {
+          scroll-snap-type: x mandatory;
+      }
+      .scroll-snap-center {
+          scroll-snap-align: center;
+      }
+      @keyframes splash-fade-in {
+        from { opacity: 0; }
+        to { opacity: 1; }
+      }
+      .splash-fade-in {
+        animation: splash-fade-in 2s forwards;
+      }
+      :root {
+        --mesai-green: #39FF14;
+        --mesai-green-light: #B0FFB0; /* A lighter shade for avatars/backgrounds */
+        --border: #e2e8f0; /* default tailwind border-gray-200 */
+        --foreground: #1e293b; /* default tailwind text-gray-800 */
+        --muted-foreground: #64748b; /* default tailwind text-gray-500 */
+        --input-background: #f8fafc; /* For the new login screen input background */
+      }
+       /* Employer Mode: Professional Light Theme */
+      .employer-mode {
+        --employer-bg: #F7F8FC; 
+        --employer-card: #FFFFFF;
+        --employer-primary: #39FF14;
+        --employer-text-primary: #1A202C; /* Dark charcoal for headings */
+        --employer-text-secondary: #718096; /* Medium gray for secondary text */
+        --employer-border: #E2E8F0; /* Subtle border color */
+        --employer-green-soft: #E6FCEC;
+        --employer-blue-soft: #EBF4FF;
+        --employer-purple-soft: #F3E8FF;
+        background-color: var(--employer-bg);
+        color: var(--employer-text-primary);
+      }
+      /* Hide number input arrows */
+      input[type=number]::-webkit-inner-spin-button, 
+      input[type=number]::-webkit-outer-spin-button { 
+        -webkit-appearance: none; 
+        margin: 0; 
+      }
+      input[type=number] {
+        -moz-appearance: textfield; /* Firefox */
+      }
+      /* Custom Range Slider Styles */
+      .range-slider {
+        -webkit-appearance: none;
+        appearance: none;
+        height: 8px;
+        background: #e5e7eb; /* gray-200 */
+        border-radius: 9999px;
+        outline: none;
+        opacity: 0.9;
+        transition: opacity .2s;
+      }
+      .range-slider:hover {
+        opacity: 1;
+      }
+      .range-slider::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        appearance: none;
+        width: 20px;
+        height: 20px;
+        background: var(--mesai-green);
+        cursor: pointer;
+        border-radius: 50%;
+        border: 3px solid white;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+      }
+      .range-slider::-moz-range-thumb {
+        width: 20px;
+        height: 20px;
+        background: var(--mesai-green);
+        cursor: pointer;
+        border-radius: 50%;
+        border: 3px solid white;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+      }
+    </style>
+  <script type="importmap">
+{
+  "imports": {
+    "react/": "https://aistudiocdn.com/react@^19.2.0/",
+    "react": "https://aistudiocdn.com/react@^19.2.0",
+    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
+    "recharts": "https://aistudiocdn.com/recharts@^3.3.0"
+  }
+}
+</script>
+<link rel="stylesheet" href="/index.css">
+</head>
+  <body>
+    <div id="root"></div>
+
+    <script type="module" src="./index.tsx"></script>
+  <script type="module" src="/index.tsx"></script>
+</body>
+</html>
